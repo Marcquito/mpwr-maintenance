@@ -228,17 +228,17 @@ class PM_Admin {
             $backup_info = null; // stale — don't include
         }
 
-        // PageSpeed — use stored scores as "before", run fresh as "after"
+        // PageSpeed — use stored scores as "before", run fresh full data as "after"
         $api_key          = $settings['pagespeed_api_key'] ?? '';
         $pagespeed_before = PM_PageSpeed::get_stored();
-        $pagespeed_after  = PM_PageSpeed::run( '', $api_key );
-        if ( ! is_wp_error( $pagespeed_after ) ) {
-            PM_PageSpeed::store( $pagespeed_after );
-        } else {
-            $pagespeed_after = null; // don't fail the whole report over PageSpeed
+        $pagespeed_full   = PM_PageSpeed::run_full( '', $api_key );
+        $pagespeed_after  = null;
+        if ( ! is_wp_error( $pagespeed_full ) ) {
+            PM_PageSpeed::store( $pagespeed_full );
+            $pagespeed_after = $pagespeed_full; // scores are included in full data
         }
 
-        // Build report HTML
+        // Build main report HTML
         $html = PM_Report::build( $pre, $post, $backup_info, $settings['client_name'], $pagespeed_before, $pagespeed_after );
 
         // Upload to Drive
@@ -251,6 +251,13 @@ class PM_Admin {
 
             $doc_title = date( 'Y-m-d' ) . ' Maintenance Report';
             $doc       = $google->upload_as_doc( $html, $doc_title, $client_folder );
+
+            // Upload separate PageSpeed report doc if we have full data
+            if ( $pagespeed_full && ! is_wp_error( $pagespeed_full ) ) {
+                $psi_html  = PM_PageSpeedReport::build( $pagespeed_full, $settings['client_name'] );
+                $psi_title = date( 'Y-m-d' ) . ' PageSpeed Report';
+                $google->upload_as_doc( $psi_html, $psi_title, $client_folder );
+            }
 
         } catch ( Exception $e ) {
             wp_send_json_error( 'Google Drive error: ' . $e->getMessage() );
@@ -284,18 +291,35 @@ class PM_Admin {
         $settings = get_option( self::OPTION_SETTINGS, [] );
         $api_key  = $settings['pagespeed_api_key'] ?? '';
         $previous = PM_PageSpeed::get_stored();
-        $current  = PM_PageSpeed::run( '', $api_key );
 
-        if ( is_wp_error( $current ) ) {
-            wp_send_json_error( $current->get_error_message() );
+        $full = PM_PageSpeed::run_full( '', $api_key );
+        if ( is_wp_error( $full ) ) {
+            wp_send_json_error( $full->get_error_message() );
         }
 
-        PM_PageSpeed::store( $current );
+        // Store summary scores only for future before/after comparison
+        PM_PageSpeed::store( $full );
+
+        // Upload standalone PageSpeed Google Doc to Drive if configured
+        $doc_url = '';
+        if ( ! empty( $settings['service_account'] ) && ! empty( $settings['parent_folder_id'] ) && ! empty( $settings['client_name'] ) ) {
+            try {
+                $google    = new PM_Google( $settings['service_account'] );
+                $folder_id = $google->get_or_create_dated_folder( $settings['client_name'], $settings['parent_folder_id'] );
+                $doc_title = date( 'Y-m-d' ) . ' PageSpeed Report';
+                $html      = PM_PageSpeedReport::build( $full, $settings['client_name'] );
+                $doc       = $google->upload_as_doc( $html, $doc_title, $folder_id );
+                $doc_url   = $doc['url'];
+            } catch ( Exception $e ) {
+                // Don't fail the test over a Drive upload error
+            }
+        }
+
+        $dashboard_html = PM_PageSpeedReport::build_dashboard_html( $full, $previous, $doc_url );
 
         wp_send_json_success( [
-            'message'  => 'PageSpeed test complete.',
-            'previous' => $previous,
-            'current'  => $current,
+            'message' => 'PageSpeed test complete.',
+            'html'    => $dashboard_html,
         ] );
     }
 

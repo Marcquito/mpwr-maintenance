@@ -55,15 +55,15 @@
 
     function handlePageSpeed( $btn ) {
         var $result = $( '#pm-pagespeed-result' );
-        $btn.addClass( 'loading' ).text( 'Running tests… (~30 sec)' );
+        $btn.addClass( 'loading' ).text( 'Running tests… (~30–60 sec)' );
         $result.hide().removeClass( 'pm-result--ok pm-result--error pm-result--info' );
 
         $.post( PM.ajax_url, { action: 'pm_run_pagespeed', nonce: PM.nonce } )
         .done( function ( res ) {
             if ( res.success ) {
-                showResult( $result, 'ok', buildPageSpeedHTML( res.data ) );
-                // Reload after a moment to update the scores table
-                setTimeout( function () { location.reload(); }, 3000 );
+                showResult( $result, 'ok', res.data.html );
+                // Reload after a moment so the scores table on the card updates
+                setTimeout( function () { location.reload(); }, 4000 );
             } else {
                 showResult( $result, 'error', '&#10060; ' + ( res.data || 'PageSpeed test failed.' ) );
             }
@@ -74,59 +74,6 @@
         .always( function () {
             $btn.removeClass( 'loading' ).text( 'Run PageSpeed Test' );
         } );
-    }
-
-    function buildPageSpeedHTML( data ) {
-        var cats = {
-            performance:    'Performance',
-            accessibility:  'Accessibility',
-            best_practices: 'Best Practices',
-            seo:            'SEO'
-        };
-        var prev    = data.previous;
-        var current = data.current;
-        var html    = '<strong>&#10003; PageSpeed test complete!</strong><br><br>';
-
-        [ ['mobile', '📱 Mobile'], ['desktop', '🖥 Desktop'] ].forEach( function( pair ) {
-            var strategy = pair[0], label = pair[1];
-            html += '<strong>' + label + '</strong><br>';
-            html += '<table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:12px;">';
-            html += '<tr><th style="text-align:left;padding:3px 8px;">Category</th>';
-            if ( prev ) html += '<th style="padding:3px 8px;">Previous</th>';
-            html += '<th style="padding:3px 8px;">Current</th>';
-            if ( prev ) html += '<th style="padding:3px 8px;">Change</th>';
-            html += '</tr>';
-
-            Object.keys( cats ).forEach( function( key ) {
-                var cur  = current.scores[ strategy ][ key ];
-                var old  = prev ? prev.scores[ strategy ][ key ] : null;
-                var diff = ( old !== null && old !== undefined ) ? cur - old : null;
-
-                var changeCell = '';
-                if ( diff !== null ) {
-                    if ( diff > 0 )      changeCell = '<span style="color:#2e7d32">▲ +' + diff + '</span>';
-                    else if ( diff < 0 ) changeCell = '<span style="color:#c62828">▼ ' + diff + '</span>';
-                    else                 changeCell = '<span style="color:#777">— same</span>';
-                }
-
-                html += '<tr>';
-                html += '<td style="padding:3px 8px;">' + cats[ key ] + '</td>';
-                if ( prev ) html += '<td style="text-align:center;padding:3px 8px;">' + ( old !== null ? old : '—' ) + '</td>';
-                html += '<td style="text-align:center;padding:3px 8px;font-weight:600;color:' + scoreColor( cur ) + '">' + cur + '</td>';
-                if ( prev ) html += '<td style="text-align:center;padding:3px 8px;">' + changeCell + '</td>';
-                html += '</tr>';
-            } );
-
-            html += '</table>';
-        } );
-
-        return html;
-    }
-
-    function scoreColor( score ) {
-        if ( score >= 90 ) return '#2e7d32';
-        if ( score >= 50 ) return '#c87820';
-        return '#c62828';
     }
 
     // ── Test connection ───────────────────────────────────────────────────────

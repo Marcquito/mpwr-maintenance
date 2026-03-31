@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  MPWR Maintenance
  * Description:  Snapshot site state, export database backups, and publish maintenance reports to Google Drive.
- * Version:      1.0.0
+ * Version:      1.1.0
  * Author:       MPWR Marketing
  * License:      GPL-2.0+
  * Text Domain:  proactive-maintenance
@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'PM_VERSION',  '1.0.0' );
+define( 'PM_VERSION',  '1.1.0' );
 define( 'PM_PATH',     plugin_dir_path( __FILE__ ) );
 define( 'PM_URL',      plugin_dir_url( __FILE__ ) );
 define( 'PM_BASENAME', plugin_basename( __FILE__ ) );
@@ -34,6 +34,7 @@ require_once PM_PATH . 'includes/class-pm-snapshot.php';
 require_once PM_PATH . 'includes/class-pm-backup.php';
 require_once PM_PATH . 'includes/class-pm-google.php';
 require_once PM_PATH . 'includes/class-pm-pagespeed.php';
+require_once PM_PATH . 'includes/class-pm-pagespeed-report.php';
 require_once PM_PATH . 'includes/class-pm-report.php';
 require_once PM_PATH . 'admin/class-pm-admin.php';
 
