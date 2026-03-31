@@ -1,0 +1,14 @@
+{
+    "name": "your-agency/proactive-maintenance",
+    "description": "WordPress plugin for proactive site maintenance reporting",
+    "type": "wordpress-plugin",
+    "require": {
+        "php": ">=7.4",
+        "google/apiclient": "^2.15",
+        "yahnis-elsts/plugin-update-checker": "^5.3"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist"
+    }
+}

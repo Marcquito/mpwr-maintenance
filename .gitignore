@@ -1,0 +1,6 @@
+# Local backup files
+*.sql
+*.sql.gz
+
+# macOS
+.DS_Store
